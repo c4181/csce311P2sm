@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     if (write_perm == SEM_FAILED)
       cout << "Error Creating Semaphore: " << errno << endl;
 
-    num_of_strings = sem_open(WRITE_TO_SM_NAME, O_CREAT, 0660, 0);
+    num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, O_CREAT, 0660, 0);
     if (num_of_strings == SEM_FAILED)
       cout << "Error Creating Semaphore: " << errno << endl;
 
