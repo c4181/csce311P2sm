@@ -64,7 +64,9 @@ int main(int argc, char *argv[]) {
 
     // Open Semaphores
     num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, 0);
-    num_of_strings->__size[line.size()];
+    for (size_t i = 0; i < lines.size(); ++i) {
+      sem_post(num_of_strings);
+    }
 
     write_perm = sem_open(WRITE_TO_SM_NAME, 0);
 
@@ -72,7 +74,7 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < lines.size(); ++i) {
       memset(buffer, 0, sizeof(buffer));
       strcpy(buffer, lines.at(i).c_str());
-      memcpy(shared_mem_ptr, buffer, sizeof(&shared_mem_ptr));
+      memcpy(shared_mem_ptr, buffer, sizeof(buffer));
       sem_post(write_perm);
       sem_wait(num_of_strings);
       sem_wait(write_perm);
@@ -114,6 +116,7 @@ int main(int argc, char *argv[]) {
       lines.push_back(string(buffer));
       cout << buffer << endl;
       sem_post(write_perm);
+      // End Critical Section
     }
 
     return (0);
