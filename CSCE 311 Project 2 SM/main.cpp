@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]) {
     file.close();
 
     // Open Shared Memory
-    fd_shm = shm_open(SHARED_MEMORY_NAME, O_RDWR, 0);
+    fd_shm = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0);
     if (fd_shm == -1) cout << "Error Opening SHM: " << errno << endl;
 
     // Map Memory
@@ -63,10 +64,10 @@ int main(int argc, char *argv[]) {
       cout << "Error Mapping Memory: " << errno << endl;
 
     // Open Semaphores
-    num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, 0);
-    for (size_t i = 0; i < lines.size(); ++i) {
-      sem_post(num_of_strings);
-    }
+
+    num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, O_CREAT, 0660, lines.size());
+    if (num_of_strings == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     write_perm = sem_open(WRITE_TO_SM_NAME, 0);
 
@@ -74,15 +75,15 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < lines.size(); ++i) {
       memset(buffer, 0, sizeof(buffer));
       strcpy(buffer, lines.at(i).c_str());
-      memcpy(shared_mem_ptr, buffer, sizeof(buffer));
+      memcpy(shared_mem_ptr, buffer, strlen(buffer));
       sem_post(write_perm);
-      sem_wait(num_of_strings);
       sem_wait(write_perm);
     }
     sem_post(write_perm);
     // End Critical Section
 
-    return (0);
+    wait(NULL);
+    //return (0);
   }
 
   // Child Process
@@ -95,27 +96,31 @@ int main(int argc, char *argv[]) {
     ftruncate(fd_shm, sizeof(buffer));
 
     // Open and Create Semaphores
-    write_perm = sem_open(WRITE_TO_SM_NAME, O_CREAT, 0660, 0);
+    write_perm = sem_open(WRITE_TO_SM_NAME, O_CREAT, 0660, 1);
     if (write_perm == SEM_FAILED)
       cout << "Error Creating Semaphore: " << errno << endl;
 
-    num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, O_CREAT, 0660, 0);
-    if (num_of_strings == SEM_FAILED)
-      cout << "Error Creating Semaphore: " << errno << endl;
+    num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, 0);
 
     shared_mem_ptr = mmap(nullptr, sizeof(buffer), PROT_READ | PROT_WRITE,
                           MAP_SHARED, fd_shm, 0);
     if (shared_mem_ptr == MAP_FAILED)
       cout << "Error Mapping Memory: " << errno << endl;
-
-    while (num_of_strings < 0) {
+    
+    int i;
+    int j;
+    bool test = true;
+    while (i != -1) {
       // Critial Section
+      cout << "Server enters CS" << endl;
       sem_wait(write_perm);
       memset(buffer, 0, sizeof(buffer));
       strcpy(buffer, (char *)shared_mem_ptr);
       lines.push_back(string(buffer));
       cout << buffer << endl;
       sem_post(write_perm);
+      i = sem_trywait(num_of_strings);
+      cout << "Server loops" << endl;
       // End Critical Section
     }
 
