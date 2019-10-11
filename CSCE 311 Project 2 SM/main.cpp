@@ -38,7 +38,7 @@ constexpr auto SHARED_MEMORY_NAME = "/find-words";
  *
  **/
 
-pthread_mutex_t lock;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct thread_args {
   vector<string> &text_lines;
@@ -58,7 +58,6 @@ void *ParseLine(void* targs) {
       // Critical Section
       pthread_mutex_lock(&lock);
       tdata -> text_matching_lines.push_back(tdata -> text_lines.at(i));
-      cout << tdata -> text_lines.at(i) << endl;
       pthread_mutex_unlock(&lock);
       // End Critical Section
     }
@@ -113,6 +112,8 @@ int main(int argc, char *argv[]) {
     for(size_t i = 0; i < lines.size() - 1; ++i) {
       sem_post(num_of_strings);
     }
+
+    // Pass all file lines to child through shared memory
     // Critical Section
     for (size_t i = 0; i < lines.size(); ++i) {
       sem_wait(continue_loop);
@@ -154,6 +155,7 @@ int main(int argc, char *argv[]) {
     if (shared_mem_ptr == MAP_FAILED)
       cout << "Error Mapping Memory: " << errno << endl;
     
+    // Read all files from shared memory into a vector
     int i;
     while (i != -1) {
       // Critial Section
@@ -176,7 +178,22 @@ int main(int argc, char *argv[]) {
     struct thread_args t4_args {lines, matching_lines, thread_lines * 3, lines.size(), string(argv[2])};
 
     rc1 = pthread_create(&thread1, nullptr, ParseLine, static_cast<void*>(&t1_args));
-    if (rc1) cout << "Error Creating Thread: " << rc1 << endl; 
+    if (rc1) cout << "Error Creating Thread: " << rc1 << endl;
+
+    rc2 = pthread_create(&thread2, nullptr, ParseLine, static_cast<void*>(&t2_args));
+    if (rc2) cout << "Error Creating Thread: " << rc2 << endl;
+
+    rc3 = pthread_create(&thread3, nullptr, ParseLine, static_cast<void*>(&t3_args));
+    if (rc3) cout << "Error Creating Thread: " << rc3 << endl;
+
+    rc4 = pthread_create(&thread4, nullptr, ParseLine, static_cast<void*>(&t4_args));
+    if (rc4) cout << "Error Creating Thread: " << rc4 << endl;
+
+    // Wait for all threads to finish
+    pthread_join(thread1, nullptr);
+    pthread_join(thread2, nullptr);
+    pthread_join(thread3, nullptr);
+    pthread_join(thread4, nullptr);
 
     return (0);
   }
