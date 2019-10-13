@@ -106,14 +106,24 @@ int main(int argc, char *argv[]) {
       cout << "Error Creating Semaphore: " << errno << endl;
 
     write_perm = sem_open(WRITE_TO_SM_NAME, O_CREAT, 0660, 0);
+    if (write_perm == SEM_FAILED)
+     cout << "Error Creating Semaphore: " << errno << endl;
 
     continue_loop = sem_open(LOOP_SEM_NAME, O_CREAT, 0660, 1);
+    if(continue_loop == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     s3 = sem_open(S3_NAME, O_CREAT, 0660, 0);
+    if (s3 == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     s4 = sem_open(S4_NAME, O_CREAT, 0660, 1);
+    if (s4 == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     s5 = sem_open(S5_NAME, O_CREAT, 0660, 0);
+    if (s5 == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     // Unlink Semaphores
     sem_unlink(SEM_STRINGS_TO_WRITE_NAME);
@@ -174,14 +184,24 @@ int main(int argc, char *argv[]) {
       cout << "Error Creating Semaphore: " << errno << endl;
 
     num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, O_CREAT, 0660, 0);
+    if (num_of_strings == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     continue_loop = sem_open(LOOP_SEM_NAME, O_CREAT, 0660, 1);
+    if (continue_loop == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     s3 = sem_open(S3_NAME, O_CREAT, 0660, 0);
+    if (s3 == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     s4 = sem_open(S4_NAME, O_CREAT, 0660, 1);
+    if (s4 == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     s5 = sem_open(S5_NAME, O_CREAT, 0660, 0);
+    if (s5 == SEM_FAILED)
+      cout << "Error Creating Semaphore: " << errno << endl;
 
     shared_mem_ptr = mmap(nullptr, sizeof(buffer), PROT_READ | PROT_WRITE,
                           MAP_SHARED, fd_shm, 0);
