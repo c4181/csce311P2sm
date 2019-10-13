@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
       // Critical Section
       sem_wait(s3);
       memset(buffer, 0, sizeof(buffer));
-      strcpy(buffer, (char*)shared_mem_ptr);
+      strcpy(buffer, static_cast<char*>(shared_mem_ptr));
       matching_lines.push_back(string(buffer));
       i = sem_trywait(s5);
       cout << buffer << endl;
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
       // Critial Section
       sem_wait(write_perm);
       memset(buffer, 0, sizeof(buffer));
-      strcpy(buffer, (char *)shared_mem_ptr);
+      strcpy(buffer, static_cast<char*>(shared_mem_ptr));
       lines.push_back(string(buffer));
       i = sem_trywait(num_of_strings);
       sem_post(continue_loop);
