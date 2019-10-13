@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
     pthread_join(thread3, nullptr);
     pthread_join(thread4, nullptr);
 
-    for (size_t i = 0; i < matching_lines.size(); ++i) {
+    for (size_t i = 0; i < matching_lines.size() - 1; ++i) {
       sem_post(s5);
     }
     // Pass all results to parent though shared memory
