@@ -27,6 +27,10 @@ constexpr auto WRITE_TO_SM_NAME = "/write-perm";
 constexpr auto LOOP_SEM_NAME = "/loop";
 constexpr auto SHARED_MEMORY_NAME = "/find-words";
 
+constexpr auto S3_NAME = "/s3";
+constexpr auto S4_NAME = "/s4";
+constexpr auto S5_NAME = "/s5";
+
 /***************************************************************************
  * Author/copyright:  Christopher Moyer.  All rights reserved.
  * Date: 7 October 2019
@@ -62,6 +66,7 @@ void *ParseLine(void* targs) {
       // End Critical Section
     }
   }
+  return nullptr;
 }
 
 int main(int argc, char *argv[]) {
@@ -69,9 +74,9 @@ int main(int argc, char *argv[]) {
   void *shared_mem_ptr;
   int fd_shm;
   char buffer[BUFFER_SIZE];
-  vector<string> lines;
-  sem_t *num_of_strings, *write_perm, *continue_loop;
-
+  vector<string> lines, matching_lines;
+  sem_t *num_of_strings, *write_perm, *continue_loop, *s3, *s4, *s5;
+  
   // Parent Process
   if (n1 > 0) {
     string line;
@@ -104,10 +109,19 @@ int main(int argc, char *argv[]) {
 
     continue_loop = sem_open(LOOP_SEM_NAME, O_CREAT, 0660, 1);
 
+    s3 = sem_open(S3_NAME, O_CREAT, 0660, 0);
+
+    s4 = sem_open(S4_NAME, O_CREAT, 0660, 1);
+
+    s5 = sem_open(S5_NAME, O_CREAT, 0660, 0);
+
     // Unlink Semaphores
     sem_unlink(SEM_STRINGS_TO_WRITE_NAME);
     sem_unlink(WRITE_TO_SM_NAME);
     sem_unlink(LOOP_SEM_NAME);
+    sem_unlink(S3_NAME);
+    sem_unlink(S4_NAME);
+    sem_unlink(S5_NAME);
 
     for(size_t i = 0; i < lines.size() - 1; ++i) {
       sem_post(num_of_strings);
@@ -124,6 +138,20 @@ int main(int argc, char *argv[]) {
     }
     // End Critical Section
 
+    // Read all results from shared memory into a vector
+    int i = 0;
+    while (i != -1) {
+      // Critical Section
+      sem_wait(s3);
+      memset(buffer, 0, sizeof(buffer));
+      strcpy(buffer, (char*)shared_mem_ptr);
+      matching_lines.push_back(string(buffer));
+      i = sem_trywait(s5);
+      cout << buffer << endl;
+      sem_post(s4);
+      // End Critical Section
+    }
+
     wait(nullptr);
     return (0);
   }
@@ -132,7 +160,6 @@ int main(int argc, char *argv[]) {
   if (n1 == 0) {
     pthread_t thread1, thread2, thread3, thread4;
     int rc1, rc2, rc3, rc4;
-    vector<string> matching_lines;
 
     // Open and Create Shared Memory
     fd_shm = shm_open(SHARED_MEMORY_NAME, O_RDWR | O_CREAT, 0660);
@@ -149,6 +176,12 @@ int main(int argc, char *argv[]) {
     num_of_strings = sem_open(SEM_STRINGS_TO_WRITE_NAME, O_CREAT, 0660, 0);
 
     continue_loop = sem_open(LOOP_SEM_NAME, O_CREAT, 0660, 1);
+
+    s3 = sem_open(S3_NAME, O_CREAT, 0660, 0);
+
+    s4 = sem_open(S4_NAME, O_CREAT, 0660, 1);
+
+    s5 = sem_open(S5_NAME, O_CREAT, 0660, 0);
 
     shared_mem_ptr = mmap(nullptr, sizeof(buffer), PROT_READ | PROT_WRITE,
                           MAP_SHARED, fd_shm, 0);
@@ -167,7 +200,7 @@ int main(int argc, char *argv[]) {
       sem_post(continue_loop);
       // End Critical Section
     }
-    
+
     // Even number inputs process exactly 1/4 of the input
     // Odd number inputs, threads 1-3 will process the input/4 rounded down
     // and thread 4 will process the remainder
@@ -195,6 +228,19 @@ int main(int argc, char *argv[]) {
     pthread_join(thread3, nullptr);
     pthread_join(thread4, nullptr);
 
+    for (size_t i = 0; i < matching_lines.size(); ++i) {
+      sem_post(s5);
+    }
+    // Pass all results to parent though shared memory
+    for(size_t i = 0; i < matching_lines.size(); ++i) {
+      // Critical Section
+      sem_wait(s4);
+      memset(buffer, 0, sizeof(buffer));
+      strcpy(buffer, matching_lines.at(i).c_str());
+      memcpy(shared_mem_ptr, buffer, sizeof(buffer));
+      sem_post(s3);
+      // End Critical Section
+    }
     return (0);
   }
 }
