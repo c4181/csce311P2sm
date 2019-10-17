@@ -47,8 +47,8 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 struct thread_args {
   vector<string> &text_lines;
   vector<string> &text_matching_lines;
-  int start_index;
-  int stop_index;
+  size_t start_index;
+  size_t stop_index;
   string word;
 };
 
@@ -57,7 +57,7 @@ void *ParseLine(void* targs) {
   tdata = (struct thread_args *) targs;
   string regex_string = "\\b" + tdata -> word + "\\b";
   regex e(regex_string, icase);
-  for (int i = tdata -> start_index; i < tdata -> stop_index; ++i) {
+  for (size_t i = tdata -> start_index; i < tdata -> stop_index; ++i) {
     if (regex_search(tdata -> text_lines.at(i), e)) {
       // Critical Section
       pthread_mutex_lock(&lock);
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
     // Even number inputs process exactly 1/4 of the input
     // Odd number inputs, threads 1-3 will process the input/4 rounded down
     // and thread 4 will process the remainder
-    int thread_lines = lines.size() / 4;
+    size_t thread_lines = lines.size() / 4;
     struct thread_args t1_args {lines, matching_lines, 0,
       thread_lines - 1, string(argv[2])};
     struct thread_args t2_args {lines, matching_lines, thread_lines,
