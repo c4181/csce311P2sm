@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
   char buffer[BUFFER_SIZE];
   vector<string> lines, matching_lines;
   sem_t *num_of_strings, *write_perm, *continue_loop, *s3, *s4, *s5;
-  
+
   // Parent Process
   if (n1 > 0) {
     string line;
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
      cout << "Error Creating Semaphore: " << errno << endl;
 
     continue_loop = sem_open(LOOP_SEM_NAME, O_CREAT, 0660, 1);
-    if(continue_loop == SEM_FAILED)
+    if (continue_loop == SEM_FAILED)
       cout << "Error Creating Semaphore: " << errno << endl;
 
     s3 = sem_open(S3_NAME, O_CREAT, 0660, 0);
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
     sem_unlink(S4_NAME);
     sem_unlink(S5_NAME);
 
-    for(size_t i = 0; i < lines.size() - 1; ++i) {
+    for (size_t i = 0; i < lines.size() - 1; ++i) {
       sem_post(num_of_strings);
     }
 
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
                           MAP_SHARED, fd_shm, 0);
     if (shared_mem_ptr == MAP_FAILED)
       cout << "Error Mapping Memory: " << errno << endl;
-    
+
     // Read all files from shared memory into a vector
     int i;
     while (i != -1) {
@@ -225,21 +225,29 @@ int main(int argc, char *argv[]) {
     // Odd number inputs, threads 1-3 will process the input/4 rounded down
     // and thread 4 will process the remainder
     int thread_lines = lines.size() / 4;
-    struct thread_args t1_args {lines, matching_lines, 0, thread_lines - 1, string(argv[2])};
-    struct thread_args t2_args {lines, matching_lines, thread_lines, (thread_lines * 2) - 1, string(argv[2])};
-    struct thread_args t3_args {lines, matching_lines, thread_lines * 2, (thread_lines * 3) - 1, string(argv[2])};
-    struct thread_args t4_args {lines, matching_lines, thread_lines * 3, lines.size(), string(argv[2])};
+    struct thread_args t1_args {lines, matching_lines, 0,
+      thread_lines - 1, string(argv[2])};
+    struct thread_args t2_args {lines, matching_lines, thread_lines,
+      (thread_lines * 2) - 1, string(argv[2])};
+    struct thread_args t3_args {lines, matching_lines, thread_lines * 2,
+      (thread_lines * 3) - 1, string(argv[2])};
+    struct thread_args t4_args {lines, matching_lines, thread_lines * 3,
+      lines.size(), string(argv[2])};
 
-    rc1 = pthread_create(&thread1, nullptr, ParseLine, static_cast<void*>(&t1_args));
+    rc1 = pthread_create(&thread1, nullptr, ParseLine,
+      static_cast<void*>(&t1_args));
     if (rc1) cout << "Error Creating Thread: " << rc1 << endl;
 
-    rc2 = pthread_create(&thread2, nullptr, ParseLine, static_cast<void*>(&t2_args));
+    rc2 = pthread_create(&thread2, nullptr, ParseLine,
+      static_cast<void*>(&t2_args));
     if (rc2) cout << "Error Creating Thread: " << rc2 << endl;
 
-    rc3 = pthread_create(&thread3, nullptr, ParseLine, static_cast<void*>(&t3_args));
+    rc3 = pthread_create(&thread3, nullptr, ParseLine,
+      static_cast<void*>(&t3_args));
     if (rc3) cout << "Error Creating Thread: " << rc3 << endl;
 
-    rc4 = pthread_create(&thread4, nullptr, ParseLine, static_cast<void*>(&t4_args));
+    rc4 = pthread_create(&thread4, nullptr, ParseLine,
+      static_cast<void*>(&t4_args));
     if (rc4) cout << "Error Creating Thread: " << rc4 << endl;
 
     // Wait for all threads to finish
@@ -252,7 +260,7 @@ int main(int argc, char *argv[]) {
       sem_post(s5);
     }
     // Pass all results to parent though shared memory
-    for(size_t i = 0; i < matching_lines.size(); ++i) {
+    for (size_t i = 0; i < matching_lines.size(); ++i) {
       // Critical Section
       sem_wait(s4);
       memset(buffer, 0, sizeof(buffer));
