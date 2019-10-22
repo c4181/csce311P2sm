@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -15,6 +16,7 @@
 using std::cout;
 using std::endl;
 using std::ifstream;
+using std::sort;
 using std::string;
 using std::regex;
 using std::regex_search;
@@ -157,12 +159,15 @@ int main(int argc, char *argv[]) {
       strcpy(buffer, static_cast<char*>(shared_mem_ptr));
       matching_lines.push_back(string(buffer));
       i = sem_trywait(s5);
-      cout << buffer << endl;
       sem_post(s4);
       // End Critical Section
     }
 
-    wait(nullptr);
+    // Sort the results and print
+    sort(matching_lines.begin(), matching_lines.end());
+    for (size_t i = 0; i < matching_lines.size(); ++i) {
+      cout << matching_lines.at(i) << endl;
+    }
     return (0);
   }
 
